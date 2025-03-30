@@ -94,13 +94,7 @@ const initialKnownPeople = [
   },
 ]
 
-// Import your component with SSR disabled
-const ComponentWithWindowAccess = dynamic(
-  () => import('../components/YourComponent'),
-  { ssr: false }
-)
-
-// Move MapComponent import to be dynamically imported
+// Keep the MapComponent dynamic import
 const MapComponent = dynamic(() => import('./MapComponent'), {
   ssr: false,
   loading: () => (
