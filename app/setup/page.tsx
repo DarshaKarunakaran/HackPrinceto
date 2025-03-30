@@ -25,6 +25,7 @@ import { v4 } from "uuid"
 import { toast } from "sonner"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import dynamic from 'next/dynamic'
 
 interface KnownPerson {
   id: number
@@ -55,6 +56,11 @@ interface LocationCoordinates {
   lat: number
   lng: number
 }
+
+const WindowDependentComponent = dynamic(
+  () => import('../components/WindowDependentComponent'),
+  { ssr: false }
+)
 
 export default function SetupPage() {
   const router = useRouter()
@@ -113,6 +119,12 @@ export default function SetupPage() {
       circleRef.current.setRadius(safeRadius)
     }
   }, [safeRadius])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // your window-dependent code here
+    }
+  }, [])
 
   const initializeMap = async () => {
     if (!mapRef.current) return
