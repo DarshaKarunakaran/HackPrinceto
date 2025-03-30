@@ -23,7 +23,6 @@ import {
   Calendar,
 } from "lucide-react"
 import { compareFaces } from "./face-recognition"
-import MapComponent from "./MapComponent"
 import { useRouter } from "next/navigation"
 import ChatBot from "../components/ChatBot"
 import {
@@ -40,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { supabase } from "../supabaseConfig"
 import { toast } from "sonner"
+import dynamic from 'next/dynamic'
 
 interface UserType {
   id: string
@@ -94,6 +94,22 @@ const initialKnownPeople = [
   },
 ]
 
+// Import your component with SSR disabled
+const ComponentWithWindowAccess = dynamic(
+  () => import('../components/YourComponent'),
+  { ssr: false }
+)
+
+// Move MapComponent import to be dynamically imported
+const MapComponent = dynamic(() => import('./MapComponent'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] flex items-center justify-center bg-muted">
+      <p>Loading map...</p>
+    </div>
+  )
+})
+
 export default function DashboardPage() {
   const router = useRouter()
   const [patientStatus, setPatientStatus] = useState("safe") // safe, warning, alert
@@ -136,8 +152,17 @@ export default function DashboardPage() {
   // Add a new state to track face recognition errors
   const [recognitionError, setRecognitionError] = useState<string | null>(null)
 
+  const [isBrowserReady, setIsBrowserReady] = useState(false)
+
   useEffect(() => {
-    loadUserData()
+    setIsBrowserReady(true)
+  }, [])
+
+  // Add check for window availability in useEffect hooks that might use browser APIs
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      loadUserData()
+    }
   }, [])
 
   // Add this useEffect to handle camera cleanup properly
@@ -418,18 +443,15 @@ export default function DashboardPage() {
     }
   }
 
-  // Add this function to check if the camera is available
+  // Update camera-related functions to check for window/navigator availability
   const checkCameraAvailability = async () => {
+    if (typeof window === 'undefined' || !navigator?.mediaDevices?.getUserMedia) {
+      toast.error("Camera API not available")
+      return false
+    }
     try {
-      // First check if the browser supports getUserMedia
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Your browser doesn't support camera access")
-        return false
-      }
-
       const devices = await navigator.mediaDevices.enumerateDevices()
       const videoDevices = devices.filter((device) => device.kind === "videoinput")
-
       if (videoDevices.length === 0) {
         toast.error("No camera detected on your device")
         return false
